@@ -1,0 +1,9 @@
+{
+  "extension": ["ts"],
+  "spec": ["test/**/*.test.ts"],
+  "timeout": 10000,
+  "exit": true,
+  "node-option": ["import=tsx/esm"],
+  "require": ["test/setup.ts"]
+}
+
