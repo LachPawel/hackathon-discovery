@@ -65,42 +65,6 @@ interface Candidate {
   technologies?: string[]
 }
 
-// Keywords that indicate this is NOT a hackathon project (but rather an article/blog)
-const ARTICLE_KEYWORDS = [
-  'announcing',
-  'winners of',
-  'here are the',
-  'top seed startups',
-  'these are the',
-  'celebrating innovation',
-  'hackathon rewind',
-  'what happens after',
-  'blog',
-  'article',
-  'news',
-  'press release',
-  'prnewswire',
-  'techcrunch',
-  'linkedin.com/posts',
-  'linkedin.com/pulse'
-]
-
-// Keywords that indicate this IS about a specific project
-const PROJECT_KEYWORDS = [
-  'built at',
-  'created at',
-  'developed at',
-  'won',
-  'project',
-  'app',
-  'platform',
-  'startup',
-  'raised',
-  'funding',
-  'demo',
-  'prototype'
-]
-
 const sanitizeName = (title: string = ''): string => {
   let cleaned = title
     .replace(/[-–|].*$/, '')
@@ -151,42 +115,48 @@ const isValidHackathonProject = (result: ExaSearchResult): boolean => {
   const text = `${result.title || ''} ${result.text || ''}`.toLowerCase()
   const url = result.url?.toLowerCase() || ''
   
-  // Skip if it's clearly an article/blog post
-  if (ARTICLE_KEYWORDS.some(keyword => text.includes(keyword) || url.includes(keyword))) {
+  // Skip obvious blog/article URLs - but allow if they mention a specific project
+  const isBlogUrl = url.includes('/blog/') || 
+                    url.includes('/pulse/') ||
+                    url.includes('prnewswire') ||
+                    (url.includes('linkedin.com/posts') && !text.includes('project') && !text.includes('startup'))
+  
+  if (isBlogUrl) {
+    // Allow if it's clearly about a specific project
+    const hasSpecificProject = text.includes('project') || 
+                              text.includes('startup') || 
+                              text.includes('app') ||
+                              text.includes('raised') ||
+                              text.includes('funding')
+    if (!hasSpecificProject) {
+      return false
+    }
+  }
+  
+  // Skip if title is clearly an announcement article (but allow if it mentions a project)
+  const title = (result.title || '').toLowerCase()
+  const isAnnouncement = (title.startsWith('announcing') || 
+                         title.startsWith('here are') ||
+                         title.startsWith('these are') ||
+                         title.startsWith('winners of')) &&
+                        !text.includes('project') &&
+                        !text.includes('startup') &&
+                        !text.includes('raised')
+  
+  if (isAnnouncement) {
     return false
   }
   
-  // Skip LinkedIn posts, blog posts, news articles
-  if (url.includes('/blog/') || 
-      url.includes('/posts/') || 
-      url.includes('/pulse/') ||
-      url.includes('prnewswire') ||
-      url.includes('techcrunch.com') ||
-      url.includes('linkedin.com/posts') ||
-      url.includes('linkedin.com/pulse')) {
-    return false
-  }
+  // Must have some indication of success or project
+  const hasSuccessOrProject = text.includes('hackathon') || 
+                              text.includes('project') || 
+                              text.includes('startup') ||
+                              text.includes('raised') ||
+                              text.includes('funding') ||
+                              text.includes('won') ||
+                              text.includes('built')
   
-  // Must mention a specific project AND hackathon context
-  const hasProjectMention = PROJECT_KEYWORDS.some(keyword => text.includes(keyword))
-  const hasHackathonContext = text.includes('hackathon') || text.includes('built at') || text.includes('won')
-  
-  // Must have both project mention and hackathon context
-  if (!hasProjectMention || !hasHackathonContext) {
-    return false
-  }
-  
-  // Skip if it's just listing winners or announcing a hackathon
-  if (text.includes('winners of') && !text.includes('project') && !text.includes('startup')) {
-    return false
-  }
-  
-  // Skip if it's too generic (just talking about hackathons in general)
-  if (text.includes('hackathon') && !text.match(/(?:built|created|won|developed|project|startup|raised)/i)) {
-    return false
-  }
-  
-  return true
+  return hasSuccessOrProject
 }
 
 const findDevpostUrl = (result: ExaSearchResult): string | null => {
@@ -258,7 +228,12 @@ const gatherContext = async (name: string, hackathonName: string): Promise<ExaSe
     return followup?.results || []
   } catch (error) {
     const err = error as Error
-    console.error('  Context search error:', err.message)
+    // Check if it's a JSON parse error (HTML response)
+    if (err.message.includes('Unexpected token') || err.message.includes('<!DOCTYPE')) {
+      console.error('  ⚠️  Exa API returned HTML instead of JSON (rate limit or API issue)')
+    } else {
+      console.error('  Context search error:', err.message)
+    }
     return []
   }
 }
@@ -283,69 +258,29 @@ const findExistingProject = async (candidate: Candidate): Promise<Project | null
 }
 
 // Validate if this is actually a hackathon project (not just an article/blog)
+// Simplified - let the LLM analysis do the heavy lifting
 const validateWithLLM = async (candidate: Candidate): Promise<boolean> => {
-  // First use heuristics for quick filtering
+  // Basic checks only - don't be too aggressive
   const text = `${candidate.sourceTitle || ''} ${candidate.description || ''}`.toLowerCase()
-  const nameLower = candidate.name.toLowerCase()
   
-  // Must mention the project name or have project indicators
-  const hasProjectName = text.includes(nameLower) || 
-                         text.includes('project') || 
-                         text.includes('startup') || 
-                         text.includes('app') ||
-                         text.includes('platform')
-  
-  // Must have hackathon context
-  const hasHackathonContext = text.includes('hackathon') || 
-                              text.includes('built at') || 
-                              text.includes('won') || 
-                              text.includes('created at') ||
-                              text.includes('developed at')
-  
-  if (!hasProjectName || !hasHackathonContext) {
+  // Skip if name is way too long (likely a headline)
+  if (candidate.name.length > 120) {
     return false
   }
   
-  // Additional check: if name is too long or looks like a headline, skip
-  if (candidate.name.length > 80) {
+  // Skip if it's clearly just a list/announcement with no project details
+  const isJustList = (candidate.sourceTitle || '').toLowerCase().includes('winners of') &&
+                     !text.includes('project') &&
+                     !text.includes('startup') &&
+                     !text.includes('raised') &&
+                     !text.includes('funding')
+  
+  if (isJustList) {
     return false
   }
   
-  // Try LLM validation for better accuracy (optional, uses heuristics if LLM unavailable)
-  try {
-    const exaAgentModule = await import('./exa-agent.js')
-    const { createLLMClient } = exaAgentModule
-    
-    if (createLLMClient) {
-      const { client: llmClient, defaultModel } = createLLMClient()
-      
-      const prompt = `Is this about a SPECIFIC hackathon project (not an article/blog post)?
-
-TITLE: ${candidate.name}
-TEXT: ${(candidate.description || candidate.snippet || '').slice(0, 400)}
-
-Respond with JSON: {"is_project": boolean, "reason": "brief explanation"}`
-
-      const completion = await llmClient.chat.completions.create({
-        model: defaultModel,
-        messages: [
-          { role: 'system', content: 'You are a validator. Determine if this is about a specific hackathon project, not a general article or blog post. Respond only with valid JSON.' },
-          { role: 'user', content: prompt }
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.3,
-      })
-      
-      const result = JSON.parse(completion.choices[0].message.content || '{}') as { is_project?: boolean }
-      return result.is_project === true
-    }
-  } catch (error) {
-    // If LLM validation fails, use heuristics (already passed above)
-    const err = error as Error
-    console.log(`  ⚠ LLM validation failed, using heuristics: ${err.message}`)
-  }
-  
-  return true // Passed heuristic checks
+  // Otherwise, let it through - the LLM analysis will determine if it's valid
+  return true
 }
 
 const processCandidate = async (candidate: Candidate, contextResults: ExaSearchResult[]): Promise<void> => {
@@ -442,22 +377,24 @@ const handleResult = async (result: ExaSearchResult, seenKeys: Set<string>): Pro
   }
 
   const name = sanitizeName(result.title || result.url)
-  if (!name || name.length < 5 || name.length > 100) return false
+  if (!name || name.length < 3 || name.length > 120) return false
 
   const textBlob = `${result.title || ''} ${result.text || ''}`
   if (!hasSuccessSignal(textBlob)) return false
 
   if (!result.url || result.url.includes('devpost.com')) return false
   
-  // Additional validation: name shouldn't look like an article title
+  // Only skip if name is clearly just an announcement with no project name
   const nameLower = name.toLowerCase()
-  if (nameLower.startsWith('announcing') || 
-      nameLower.startsWith('here are') ||
-      nameLower.startsWith('these are') ||
-      nameLower.startsWith('winners of') ||
-      nameLower.startsWith('celebrating') ||
-      nameLower.includes('hackathon winners') ||
-      nameLower.includes('hackathon rewind')) {
+  const isGenericAnnouncement = (nameLower.startsWith('announcing') || 
+                                 nameLower.startsWith('here are') ||
+                                 nameLower.startsWith('these are') ||
+                                 nameLower.startsWith('winners of')) &&
+                                name.length < 30 && // Short generic titles
+                                !textBlob.toLowerCase().includes('project') &&
+                                !textBlob.toLowerCase().includes('startup')
+  
+  if (isGenericAnnouncement) {
     return false
   }
 
@@ -516,14 +453,25 @@ export async function discoverSuccessStories(limit: number = DEFAULT_LIMIT, _use
         useAutoprompt: true
       })
 
-      for (const result of search.results || []) {
-        if (processed >= limit) break
-        const ok = await handleResult(result, seenKeys)
-        if (ok) processed += 1
+      if (search?.results) {
+        for (const result of search.results) {
+          if (processed >= limit) break
+          const ok = await handleResult(result, seenKeys)
+          if (ok) processed += 1
+        }
       }
     } catch (error) {
       const err = error as Error
-      console.error('Search error:', err.message)
+      // Check if it's a JSON parse error (HTML response)
+      if (err.message.includes('Unexpected token') || err.message.includes('<!DOCTYPE')) {
+        console.error(`⚠️  Exa API returned HTML instead of JSON for query: "${query}"`)
+        console.error(`   This usually means: rate limit, API key issue, or Exa API error`)
+        console.error(`   Try: Check your Exa API key, wait a few minutes, or check Exa status`)
+      } else {
+        console.error(`Search error:`, err.message)
+      }
+      // Wait longer on error
+      await delay(5000)
     }
     await delay(2000)
   }

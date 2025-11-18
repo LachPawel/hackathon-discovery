@@ -68,9 +68,19 @@ Uses Exa + LLM (OpenAI or OpenRouter) to research which projects got funding, be
 
 **Agentic Mode** (default): Uses AI to generate adaptive search queries and prioritize hackathons.
 ```bash
-npm run research              # Agentic mode (default)
-npm run research -- --no-agentic  # Scripted mode
+npm run research                    # Agentic mode (default)
+npm run research -- --no-agentic   # Scripted mode
+npm run research -- --enhanced-agentic  # Enhanced agentic (with feedback loops, self-correction, memory)
 ```
+
+**Enhanced Agentic Mode** (NEW!): Full agentic capabilities including:
+- ✅ **Feedback Loops**: LLM evaluates query results and refines queries automatically
+- ✅ **Self-Correction**: LLM analyzes failures and generates alternative strategies
+- ✅ **Dynamic Planning**: Creates and adjusts research plans based on intermediate results
+- ✅ **Memory**: Learns from past successful queries and reuses patterns for similar projects
+- ✅ **Quality Evaluation**: Automatically evaluates result quality and decides next actions
+
+This mode is more intelligent but uses more API calls. Use it when you want the best research quality.
 
 ### 5. Start API Server
 

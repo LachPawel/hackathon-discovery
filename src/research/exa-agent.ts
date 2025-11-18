@@ -58,7 +58,7 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // Helper to truncate text to limit token usage
-function truncateText(text: string | null | undefined, maxLength: number = 200): string {
+export function truncateText(text: string | null | undefined, maxLength: number = 200): string {
   if (!text) return 'N/A';
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
 }
@@ -132,11 +132,21 @@ export async function researchProject(project: Project, useAgentic: boolean = tr
         useAutoprompt: true,
       });
       
-      allResults.push(...(searchResults.results || []));
-      await new Promise(r => setTimeout(r, 1000)); // Rate limit
+      if (searchResults && searchResults.results) {
+        allResults.push(...searchResults.results);
+      }
+      await new Promise(r => setTimeout(r, 1500)); // Rate limit
     } catch (error) {
       const err = error as Error;
-      console.error(`Exa search error for "${query}":`, err.message);
+      // Check if it's a JSON parse error (HTML response)
+      if (err.message.includes('Unexpected token') || err.message.includes('<!DOCTYPE')) {
+        console.error(`⚠️  Exa API returned HTML instead of JSON for "${query}"`);
+        console.error(`   This usually means: API key issue, rate limit, or Exa API error`);
+      } else {
+        console.error(`Exa search error for "${query}":`, err.message);
+      }
+      // Wait longer on error to avoid rate limits
+      await new Promise(r => setTimeout(r, 3000));
     }
   }
   
@@ -361,11 +371,22 @@ export async function discoverHackathons(query: string = 'Devpost hackathon winn
           useAutoprompt: true,
         });
         
-        allResults.push(...(searchResults.results || []));
-        await new Promise(r => setTimeout(r, 1000)); // Rate limit
+        if (searchResults && searchResults.results) {
+          allResults.push(...searchResults.results);
+        }
+        await new Promise(r => setTimeout(r, 1500)); // Rate limit
       } catch (error) {
         const err = error as Error;
-        console.error(`Exa search error for "${searchQuery}":`, err.message);
+        // Check if it's a JSON parse error (HTML response)
+        if (err.message.includes('Unexpected token') || err.message.includes('<!DOCTYPE')) {
+          console.error(`⚠️  Exa API returned HTML instead of JSON for "${searchQuery}"`);
+          console.error(`   This usually means: API key issue, rate limit, or Exa API error`);
+          console.error(`   Error: ${err.message.substring(0, 100)}...`);
+        } else {
+          console.error(`Exa search error for "${searchQuery}":`, err.message);
+        }
+        // Wait longer on error to avoid rate limits
+        await new Promise(r => setTimeout(r, 3000));
       }
     }
     
@@ -495,7 +516,7 @@ export async function discoverHackathons(query: string = 'Devpost hackathon winn
   }
 }
 
-export async function researchAllProjects(useAgentic: boolean = true): Promise<void> {
+export async function researchAllProjects(useAgentic: boolean = true, useEnhancedAgentic: boolean = false): Promise<void> {
   const { data: projects } = await supabase
     .from('projects')
     .select('*')
@@ -509,14 +530,55 @@ export async function researchAllProjects(useAgentic: boolean = true): Promise<v
     return;
   }
   
-  for (const project of projects as Project[]) {
-    try {
-      await researchProject(project, useAgentic);
-      await new Promise(r => setTimeout(r, 3000)); // Rate limit
-    } catch (error) {
-      const err = error as Error;
-      console.error(`Error researching ${project.name}:`, err.message);
-      // Continue with next project instead of failing completely
+  // Use enhanced agentic research if enabled
+  if (useEnhancedAgentic && process.env.EXA_API_KEY) {
+    const exa = new Exa(process.env.EXA_API_KEY);
+    const { agenticResearchProject } = await import('./agentic-enhanced.js');
+    
+    for (const project of projects as Project[]) {
+      try {
+        const analysis = await agenticResearchProject(project, exa);
+        if (analysis) {
+          // Update database with analysis
+          await supabase
+            .from('projects')
+            .update({
+              got_funding: analysis.got_funding,
+              funding_amount: analysis.funding_amount,
+              funding_source: analysis.funding_source,
+              became_startup: analysis.became_startup,
+              startup_name: analysis.startup_name,
+              startup_url: analysis.startup_url,
+              has_real_users: analysis.has_real_users,
+              user_count: analysis.user_count,
+              is_still_active: analysis.is_still_active,
+              research_summary: analysis.summary,
+              market_score: analysis.scores.market,
+              team_score: analysis.scores.team,
+              innovation_score: analysis.scores.innovation,
+              execution_score: analysis.scores.execution,
+              overall_score: analysis.scores.overall,
+              researched_at: new Date().toISOString(),
+            })
+            .eq('id', project.id);
+        }
+        await new Promise(r => setTimeout(r, 3000));
+      } catch (error) {
+        const err = error as Error;
+        console.error(`  ✗ Error: ${err.message}`);
+      }
+    }
+  } else {
+    // Original research method
+    for (const project of projects as Project[]) {
+      try {
+        await researchProject(project, useAgentic);
+        await new Promise(r => setTimeout(r, 3000)); // Rate limit
+      } catch (error) {
+        const err = error as Error;
+        console.error(`Error researching ${project.name}:`, err.message);
+        // Continue with next project instead of failing completely
+      }
     }
   }
 }
@@ -579,11 +641,21 @@ export async function researchSuccessStories(useAgentic: boolean = true): Promis
             useAutoprompt: true,
           });
           
-          allResults.push(...(searchResults.results || []));
-          await new Promise(r => setTimeout(r, 1000)); // Rate limit
+          if (searchResults?.results) {
+            allResults.push(...searchResults.results);
+          }
+          await new Promise(r => setTimeout(r, 1500)); // Rate limit
         } catch (error) {
           const err = error as Error;
-          console.error(`  Exa search error:`, err.message);
+          // Check if it's a JSON parse error (HTML response)
+          if (err.message.includes('Unexpected token') || err.message.includes('<!DOCTYPE')) {
+            console.error(`  ⚠️  Exa API returned HTML instead of JSON`);
+            console.error(`     This usually means: rate limit, API key issue, or Exa API error`);
+          } else {
+            console.error(`  Exa search error:`, err.message);
+          }
+          // Wait longer on error
+          await new Promise(r => setTimeout(r, 5000));
         }
       }
       
