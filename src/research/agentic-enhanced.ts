@@ -1,6 +1,5 @@
 import Exa from 'exa-js';
 import { createLLMClient } from './exa-agent.js';
-import { supabase } from '../db/supabase.js';
 import type { Project, ExaSearchResult, ProjectAnalysis } from '../types/index.js';
 import { truncateText } from './exa-agent.js';
 
@@ -625,4 +624,5 @@ function extractHackathonsFromResults(results: ExaSearchResult[]): Array<{ name:
 
   return hackathons;
 }
+
 

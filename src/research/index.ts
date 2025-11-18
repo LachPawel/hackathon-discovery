@@ -1,7 +1,7 @@
 import { researchAllProjects, discoverHackathons, researchSuccessStories } from './exa-agent.js';
 import { discoverSuccessStories as discoverWebSuccessStories } from './discover-success.js';
 import { scrapeAndSave } from '../scraper/devpost.js';
-import { agenticResearchProject, agenticDiscoverHackathons } from './agentic-enhanced.js';
+import { agenticDiscoverHackathons } from './agentic-enhanced.js';
 import Exa from 'exa-js';
 import dotenv from 'dotenv';
 
