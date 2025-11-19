@@ -1,0 +1,17 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Proxy API requests to the backend
+# REPLACE 'https://your-render-backend-url.onrender.com' with your actual Render backend URL after deploying it
+[[redirects]]
+  from = "/api/*"
+  to = "https://your-render-backend-url.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+# Handle React Router (SPA) - redirect all other traffic to index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

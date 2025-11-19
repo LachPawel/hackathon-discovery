@@ -276,6 +276,7 @@ Queries should:
 - Target 2025, 2024 hackathons
 - Find project galleries/winners
 - Be specific but concise
+- Focus on "Winner", "First Place", "Grand Prize"
 
 Return JSON: {"queries": ["query1", "query2", ...]}`;
 
@@ -312,7 +313,7 @@ async function prioritizeHackathons(hackathons: Hackathon[], context: QueryConte
   
   // Limit hackathon names/URLs to reduce tokens
   const hackathonsList = hackathons
-    .slice(0, 10) // Limit to 10 for token savings
+    .slice(0, 20) // Increased limit to 20
     .map((h, i) => `${i + 1}. ${truncateText(h.name, 40)}`)
     .join('\n');
   
@@ -343,7 +344,7 @@ Return JSON: {"ranked_indices": [2, 0, 1, ...]}`;
   }
 }
 
-export async function discoverHackathons(query: string = 'Devpost hackathon winners 2024 and 2025', limit: number = 5, useAgentic: boolean = true): Promise<Hackathon[]> {
+export async function discoverHackathons(query: string = 'Devpost hackathon winners 2024 and 2025', limit: number = 10, useAgentic: boolean = true): Promise<Hackathon[]> {
   console.log(`\n🤖 Agentic discovery mode: ${useAgentic ? 'ON' : 'OFF'}`);
   console.log(`Discovering hackathons with Exa: "${query}"`);
   

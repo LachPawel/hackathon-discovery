@@ -6,7 +6,7 @@ const API_URL = '/api'
 export async function generateMatchAnalysis(project: Project, vc: VC): Promise<MatchAnalysis> {
   // Use OpenAI API via backend endpoint
   try {
-    const { data } = await axios.post<MatchAnalysis>(`${API_URL}/match/${project.id}`)
+    const { data } = await axios.post<MatchAnalysis>(`${API_URL}/match/${project.id}`, { vc })
     return data
   } catch (error) {
     console.error('Error generating match analysis:', error)

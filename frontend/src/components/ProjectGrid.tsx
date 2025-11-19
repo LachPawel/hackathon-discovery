@@ -11,47 +11,36 @@ interface ProjectGridProps {
 
 export function ProjectGrid({ projects, loading, onRefresh, onProjectClick, onMatchWithE2VC }: ProjectGridProps) {
   if (loading) {
-    return (
-      <main className="project-grid-section">
-        <div className="container">
-          <div className="loading">
-            <div className="loading-text">Loading projects...</div>
-          </div>
-        </div>
-      </main>
-    )
+    return null // Handled by parent
   }
 
   if (projects.length === 0) {
     return (
-      <main className="project-grid-section">
-        <div className="container">
-          <div className="empty">
-            <div className="empty-text">No projects found</div>
-            {onRefresh && (
-              <button onClick={onRefresh} className="refresh-btn">Refresh</button>
-            )}
-          </div>
-        </div>
-      </main>
+      <div className="flex flex-col items-center justify-center py-20 text-white/40">
+        <p>No projects found</p>
+        {onRefresh && (
+          <button 
+            onClick={onRefresh} 
+            className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-white"
+          >
+            Refresh
+          </button>
+        )}
+      </div>
     )
   }
 
   return (
-    <main className="project-grid-section">
-      <div className="container">
-        <div className="grid">
-          {projects.map((project) => (
-            <ProjectCard 
-              key={project.id} 
-              project={project} 
-              onProjectClick={onProjectClick}
-              onMatchWithE2VC={onMatchWithE2VC}
-            />
-          ))}
-        </div>
-      </div>
-    </main>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {projects.map((project) => (
+        <ProjectCard 
+          key={project.id} 
+          project={project} 
+          onProjectClick={onProjectClick}
+          onMatchWithE2VC={onMatchWithE2VC}
+        />
+      ))}
+    </div>
   )
 }
 

@@ -1,5 +1,4 @@
-import { researchAllProjects, discoverHackathons, researchSuccessStories } from './exa-agent.js';
-import { discoverSuccessStories as discoverWebSuccessStories } from './discover-success.js';
+import { researchAllProjects, discoverHackathons } from './exa-agent.js';
 import { scrapeAndSave } from '../scraper/devpost.js';
 import { agenticDiscoverHackathons } from './agentic-enhanced.js';
 import Exa from 'exa-js';
@@ -19,14 +18,14 @@ async function discoverScrapeAndResearch(useAgentic: boolean = true, useEnhanced
   // Use enhanced agentic discovery if enabled
   if (useEnhancedAgentic && process.env.EXA_API_KEY) {
     const exa = new Exa(process.env.EXA_API_KEY);
-    hackathons = await agenticDiscoverHackathons('Devpost hackathon winners 2024 and 2025', 5, exa);
+    hackathons = await agenticDiscoverHackathons('Devpost hackathon winners 2024 and 2025', 10, exa);
   } else {
     // Original agentic discovery with retry logic
     while (hackathons.length === 0 && attempts < maxAttempts) {
       attempts++;
       console.log(`\nDiscovery attempt ${attempts}/${maxAttempts}...`);
       
-      hackathons = await discoverHackathons('Devpost hackathon winners 2024 and 2025', 5, useAgentic);
+      hackathons = await discoverHackathons('Devpost hackathon winners 2024 and 2025', 10, useAgentic);
       
       if (hackathons.length === 0 && attempts < maxAttempts) {
         console.log('⚠ No hackathons found. Trying different search strategy...');
@@ -47,7 +46,7 @@ async function discoverScrapeAndResearch(useAgentic: boolean = true, useEnhanced
   for (const hackathon of hackathons) {
     console.log(`\nScraping: ${hackathon.name}`);
     try {
-      await scrapeAndSave(hackathon.url, hackathon.name, 10);
+      await scrapeAndSave(hackathon.url, hackathon.name, 20); // Increased limit
       successfulScrapes++;
       await new Promise(r => setTimeout(r, 2000));
     } catch (error) {
@@ -62,42 +61,14 @@ async function discoverScrapeAndResearch(useAgentic: boolean = true, useEnhanced
   
   // Research all projects (including newly scraped ones)
   await researchAllProjects(useAgentic, useEnhancedAgentic);
-  
-  console.log(`\n=== Step 4: Discovering Web Success Stories ===\n`);
-  await discoverWebSuccessStories(20, useAgentic);
-  
-  console.log(`\n=== Step 5: Deep Research on Success Stories ===\n`);
-  
-  // Deep research on success stories
-  await researchSuccessStories(useAgentic);
 }
 
 // Check command line arguments
 const shouldDiscover = process.argv[2] !== '--no-discover';
 const useAgentic = process.argv.includes('--agentic') || !process.argv.includes('--no-agentic');
 const useEnhancedAgentic = process.argv.includes('--enhanced-agentic') || process.argv.includes('--full-agentic');
-const onlySuccessStories = process.argv.includes('--success-stories');
-const onlyWebDiscovery = process.argv.includes('--discover-web');
 
-if (onlyWebDiscovery) {
-  const limit = Number(process.argv[3]) || 20;
-  discoverWebSuccessStories(limit, useAgentic).then(() => {
-    console.log('\n✓ Web success stories discovery complete');
-    process.exit(0);
-  }).catch(error => {
-    console.error('Error:', error);
-    process.exit(1);
-  });
-} else if (onlySuccessStories) {
-  // Just research success stories
-  researchSuccessStories(useAgentic).then(() => {
-    console.log('\n✓ Success stories research complete');
-    process.exit(0);
-  }).catch(error => {
-    console.error('Error:', error);
-    process.exit(1);
-  });
-} else if (shouldDiscover) {
+if (shouldDiscover) {
   discoverScrapeAndResearch(useAgentic, useEnhancedAgentic).then(() => {
     console.log('\n✓ Complete workflow finished');
     process.exit(0);
@@ -115,4 +86,5 @@ if (onlyWebDiscovery) {
     process.exit(1);
   });
 }
+
 

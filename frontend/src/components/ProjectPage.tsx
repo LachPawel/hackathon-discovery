@@ -60,9 +60,23 @@ export function ProjectPage({ project, onClose }: ProjectPageProps) {
     let currentSection = 'description'
     let currentContent: string[] = []
     
+    // Garbage patterns to filter out
+    const garbagePatterns = [
+      /^policy page:/i,
+      /^launching page/i,
+      /^about$/i,
+      /^terms of service/i,
+      /^privacy policy/i,
+      /^copyright/i,
+      /^all rights reserved/i
+    ]
+    
     for (const line of lines) {
       const trimmed = line.trim()
       if (!trimmed) continue
+      
+      // Skip garbage lines
+      if (garbagePatterns.some(pattern => pattern.test(trimmed))) continue
       
       const headerMatch = trimmed.match(/^(Inspiration|What it does|How we built it|Challenges|Accomplishments|What we learned|What's next):/i)
       if (headerMatch) {
@@ -124,72 +138,22 @@ export function ProjectPage({ project, onClose }: ProjectPageProps) {
         </div>
       </div>
 
-      {/* Content - Two Column Layout */}
-      <div className="container mx-auto max-w-7xl px-4 py-8 flex gap-8">
-        {/* Left Column - Image Gallery (30-40%) */}
-        {images.length > 0 && (
-          <div className="w-full md:w-[35%] flex-shrink-0">
-            <div className="sticky top-20 space-y-4">
-              <div className="relative aspect-square bg-white/5 rounded-2xl overflow-hidden border border-white/10 shadow-lg">
-                <img
-                  src={images[activeImageIndex]}
-                  alt={project.name}
-                  className="w-full h-full object-cover"
-                />
-                {images.length > 1 && (
-                  <>
-                    <button
-                      onClick={() => setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length)}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors z-10"
-                    >
-                      <ChevronLeft className="w-5 h-5 text-white" />
-                    </button>
-                    <button
-                      onClick={() => setActiveImageIndex((prev) => (prev + 1) % images.length)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors z-10"
-                    >
-                      <ChevronRight className="w-5 h-5 text-white" />
-                    </button>
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                      {images.map((_, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setActiveImageIndex(idx)}
-                          className={`w-2 h-2 rounded-full transition-all ${
-                            idx === activeImageIndex ? 'bg-white w-8' : 'bg-white/30'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-              {/* Thumbnail Gallery */}
-              {images.length > 1 && (
-                <div className="grid grid-cols-4 gap-2">
-                  {images.map((img, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setActiveImageIndex(idx)}
-                      className={`relative aspect-square overflow-hidden rounded-2xl border-2 transition-all ${
-                        idx === activeImageIndex ? 'border-white' : 'border-white/20 hover:border-white/50'
-                      }`}
-                    >
-                      <img
-                        src={img}
-                        alt={`${project.name} ${idx + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
+      {/* Content - Single Column Layout */}
+      <div className="container mx-auto max-w-4xl px-4 py-8">
+        {/* Project Details */}
+        <div className="w-full">
+          {/* Main Image Banner */}
+          {project.image_url && (
+            <div className="w-full h-64 md:h-80 mb-8 rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative group">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
+              <img
+                src={project.image_url}
+                alt={project.name}
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Right Column - Project Details (60-70%) */}
-        <div className={`flex-1 ${images.length > 0 ? '' : 'max-w-4xl mx-auto'}`}>
           {/* Title and Tagline */}
           <div className="mb-6">
             <h1 className="text-4xl md:text-5xl font-light text-white mb-3">{project.name}</h1>
@@ -530,16 +494,6 @@ export function ProjectPage({ project, onClose }: ProjectPageProps) {
                       </div>
                     </section>
 
-                    {/* Overall Assessment */}
-                    {matchAnalysis.overall_assessment && (
-                      <section>
-                        <h2 className="text-2xl font-light text-white mb-4">Overall Assessment</h2>
-                        <div className="p-4 bg-white/5 rounded-lg border border-white/10 text-white/80 leading-relaxed">
-                          {matchAnalysis.overall_assessment}
-                        </div>
-                      </section>
-                    )}
-
                     {/* Fit Scores */}
                     <section>
                       <h2 className="text-2xl font-light text-white mb-4">Fit Analysis</h2>
@@ -624,6 +578,36 @@ export function ProjectPage({ project, onClose }: ProjectPageProps) {
                             </li>
                           ))}
                         </ul>
+                      </section>
+                    )}
+
+                    {/* Verification Checks */}
+                    {matchAnalysis.verification_checks && matchAnalysis.verification_checks.length > 0 && (
+                      <section>
+                        <h2 className="text-2xl font-light text-white mb-4">Verification Checks</h2>
+                        <div className="grid grid-cols-1 gap-3">
+                          {matchAnalysis.verification_checks.map((check, idx) => (
+                            <div key={idx} className={`p-4 rounded-lg border backdrop-blur-sm flex items-start gap-3 ${
+                              check.passed 
+                                ? 'bg-green-500/5 border-green-500/20' 
+                                : 'bg-red-500/5 border-red-500/20'
+                            }`}>
+                              <div className={`mt-1 w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                                check.passed ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                              }`}>
+                                {check.passed ? '✓' : '✕'}
+                              </div>
+                              <div>
+                                <div className={`font-medium ${check.passed ? 'text-green-400' : 'text-red-400'}`}>
+                                  {check.check}
+                                </div>
+                                <div className="text-sm text-white/60 mt-1">
+                                  {check.notes}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </section>
                     )}
                   </>

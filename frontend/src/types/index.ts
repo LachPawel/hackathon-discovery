@@ -86,5 +86,10 @@ export interface MatchAnalysis {
     analysis: string
   }
   recommendation: string
+  verification_checks?: {
+    check: string
+    passed: boolean
+    notes: string
+  }[]
   next_steps: string[]
 }

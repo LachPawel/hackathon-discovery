@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { saveProject } from '../db/supabase.js';
+import { saveProject, supabase } from '../db/supabase.js';
 import type { ScrapedProject, ScrapedProjectData } from '../types/index.js';
 
 export async function scrapeHackathonWinners(hackathonUrl: string, hackathonName: string): Promise<ScrapedProject[]> {
@@ -181,7 +181,7 @@ export async function scrapeAndSave(
       console.log('No hackathons provided. Use discoverHackathons() first or provide a URL.');
       return;
     }
-    projectLimit = 15;
+    projectLimit = 50; // Increased limit
   }
   
   console.log('Starting Devpost scraper...\n');
@@ -196,6 +196,18 @@ export async function scrapeAndSave(
       
       if (projectData) {
         try {
+          // Check for duplicates by name
+          const { data: existing } = await supabase
+            .from('projects')
+            .select('id')
+            .eq('name', projectData.details.name)
+            .single();
+
+          if (existing) {
+            console.log(`  ⚠ Skipping duplicate: ${projectData.details.name}`);
+            continue;
+          }
+
           await saveProject({
             ...projectData.details,
             technologies: projectData.details.technologies || []
