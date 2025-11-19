@@ -40,3 +40,51 @@ export interface Stats {
   has_users: number
 }
 
+export interface VC {
+  id: string
+  name: string
+  description: string
+  focus_geography: string[]
+  focus_sectors: string[]
+  investment_stages: string[]
+  typical_check_size: string
+  philosophy: string
+  notable_exits?: string[]
+  portfolio_companies?: string[]
+  website?: string
+}
+
+export interface MatchAnalysis {
+  match_score: number
+  overall_assessment: string
+  strengths: {
+    title: string
+    description: string
+  }[]
+  concerns: {
+    title: string
+    description: string
+  }[]
+  sector_fit: {
+    score: number
+    analysis: string
+  }
+  geography_fit: {
+    score: number
+    analysis: string
+  }
+  stage_fit: {
+    score: number
+    analysis: string
+  }
+  team_fit: {
+    score: number
+    analysis: string
+  }
+  market_fit: {
+    score: number
+    analysis: string
+  }
+  recommendation: string
+  next_steps: string[]
+}

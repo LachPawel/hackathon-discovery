@@ -27,4 +27,3 @@ export const fetchProject = async (id: string): Promise<Project> => {
   const { data } = await axios.get<Project>(`${API_URL}/projects/${id}`)
   return data
 }
-
