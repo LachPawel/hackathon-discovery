@@ -11,9 +11,9 @@ export class StatsModel {
 
     return {
       total_projects: projects?.length || 0,
-      got_funding: projects?.filter(p => p.got_funding).length || 0,
-      became_startups: projects?.filter(p => p.became_startup).length || 0,
-      has_users: projects?.filter(p => p.has_real_users).length || 0
+      got_funding: projects?.filter((p: any) => p.got_funding).length || 0,
+      became_startups: projects?.filter((p: any) => p.became_startup).length || 0,
+      has_users: projects?.filter((p: any) => p.has_real_users).length || 0
     }
   }
 }

@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express'
 import { AppError } from './errorHandler.js'
 
-export const validateUUID = (req: Request, res: Response, next: NextFunction): void => {
+export const validateUUID = (req: Request, _res: Response, next: NextFunction): void => {
   const { id } = req.params
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -12,7 +12,7 @@ export const validateUUID = (req: Request, res: Response, next: NextFunction): v
   next()
 }
 
-export const validateScrapeRequest = (req: Request, res: Response, next: NextFunction): void => {
+export const validateScrapeRequest = (req: Request, _res: Response, next: NextFunction): void => {
   const { url } = req.body
 
   if (!url || typeof url !== 'string') {

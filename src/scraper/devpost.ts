@@ -44,7 +44,7 @@ export async function scrapeHackathonWinners(hackathonUrl: string, hackathonName
     
     let foundProjects = false;
     for (const selector of selectors) {
-      $(selector).each((i, elem) => {
+      $(selector).each((_i, elem) => {
         const $elem = $(elem);
         const projectLink = $elem.find('a.block-wrapper-link, a[href*="/software/"]').first().attr('href');
         
@@ -101,7 +101,7 @@ export async function scrapeProjectDetails(projectUrl: string, hackathonName: st
     
     // Links
     const github_url = $('a[href*="github.com"]').first().attr('href') || undefined;
-    const demo_url = $('a.software-links').filter((i, el) => 
+    const demo_url = $('a.software-links').filter((_i, el) => 
       $(el).text().toLowerCase().includes('try')
     ).first().attr('href') || undefined;
     
@@ -110,19 +110,19 @@ export async function scrapeProjectDetails(projectUrl: string, hackathonName: st
     
     // Technologies - look for tags
     const technologies: string[] = [];
-    $('#built-with a').each((i, elem) => {
+    $('#built-with a').each((_i, elem) => {
       technologies.push($(elem).text().trim());
     });
     
     // Prizes won
     const prizes: string[] = [];
-    $('.winner-award').each((i, elem) => {
+    $('.winner-award').each((_i, elem) => {
       prizes.push($(elem).text().trim());
     });
     
     // Team
     const founders: Array<{ name: string; devpost_url?: string }> = [];
-    $('#software-team .software-team-member').each((i, elem) => {
+    $('#software-team .software-team-member').each((_i, elem) => {
       const $member = $(elem);
       const founderName = $member.find('.user-profile-name').text().trim();
       const founderUrl = $member.find('a').attr('href');

@@ -307,7 +307,7 @@ Return JSON: {"queries": ["query1", "query2", ...]}`;
   }
 }
 
-async function prioritizeHackathons(hackathons: Hackathon[], context: QueryContext = {}): Promise<Hackathon[]> {
+async function prioritizeHackathons(hackathons: Hackathon[], _context: QueryContext = {}): Promise<Hackathon[]> {
   // Use LLM to prioritize hackathons based on relevance and quality
   if (hackathons.length === 0) return [];
   
@@ -789,7 +789,7 @@ export function buildResearchSummary(analysis: ProjectAnalysis): string | null {
   return summary || null;
 }
 
-function buildSuccessStorySummary(analysis: ProjectAnalysis, project: Project): string {
+function buildSuccessStorySummary(analysis: ProjectAnalysis, _project: Project): string {
   // Build a comprehensive summary with achievements and reasoning for success stories
   let summary = analysis.summary || '';
   

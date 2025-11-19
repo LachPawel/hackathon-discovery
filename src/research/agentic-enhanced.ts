@@ -36,7 +36,7 @@ class AgenticMemory {
   // Save successful query patterns
   saveSuccess(project: Project, queries: string[], results: ExaSearchResult[]): void {
     const projectType = this.categorizeProject(project);
-    const successfulQueries = queries.filter((q, i) => {
+    const successfulQueries = queries.filter((_q, _i) => {
       // Consider query successful if it returned relevant results
       return results.some(r => 
         r.text?.toLowerCase().includes(project.name.toLowerCase()) ||
@@ -454,7 +454,7 @@ export async function agenticDiscoverHackathons(
 ): Promise<Array<{ name: string; url: string; slug: string; source?: string }>> {
   console.log(`\n🤖 Agentic Hackathon Discovery`);
   
-  const { client: llmClient, defaultModel } = createLLMClient();
+  const { client: _llmClient, defaultModel: _defaultModel } = createLLMClient();
   let attempts = 0;
   const maxAttempts = 3;
   let allResults: ExaSearchResult[] = [];

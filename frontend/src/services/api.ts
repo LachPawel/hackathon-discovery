@@ -1,7 +1,7 @@
 import axios from 'axios'
 import type { Project, Stats } from '../types'
 
-const API_URL = '/api'
+const API_URL = import.meta.env.VITE_API_URL || '/api'
 
 export const fetchProjects = async (): Promise<Project[]> => {
   const { data } = await axios.get<Project[]>(`${API_URL}/projects`)

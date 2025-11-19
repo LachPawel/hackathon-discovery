@@ -39,7 +39,7 @@ export class ProjectController {
     res.json(projects)
   }
 
-  async getSuccessStories(req: Request, res: Response): Promise<void> {
+  async getSuccessStories(_req: Request, res: Response): Promise<void> {
     const projects = await projectService.getSuccessStories()
     res.json(projects)
   }
